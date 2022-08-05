@@ -1,0 +1,52 @@
+plugins {
+	id 'org.springframework.boot' version '2.7.2'
+	id 'io.spring.dependency-management' version '1.0.12.RELEASE'
+	id 'java'
+}
+
+group = 'com.meshlake'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	compileOnly 'org.projectlombok:lombok'
+	runtimeOnly 'com.h2database:h2'
+	runtimeOnly 'mysql:mysql-connector-java'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    implementation "org.springdoc:springdoc-openapi-ui:1.6.8"
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+def bootJarExtractedDir = "${buildDir}/extracted"
+
+task extractBootJar(type: JavaExec, dependsOn: bootJar) {
+    // Sample: "java -Djarmode=layertools -jar target/*.jar extract --destination target/extracted"
+    jvmArgs = [
+        "-Djarmode=layertools"
+    ]
+    classpath = files(tasks.bootJar.outputs.files.singleFile)
+    args = [
+        "extract", 
+        "--destination", "${bootJarExtractedDir}"
+    ]
+}
+
+tasks.named("bootJar") {
+    finalizedBy("extractBootJar")
+}

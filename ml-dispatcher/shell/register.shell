@@ -1,0 +1,4 @@
+version
+date
+app register --name transform --type task --uri file://home/cnb/scdf/ml-tasks/ml-transform/transform-0.0.1-SNAPSHOT.jar
+app register --name aggregate --type task --uri file://home/cnb/scdf/ml-tasks/ml-aggregate/aggregate-0.0.1-SNAPSHOT.jar
