@@ -1,3 +1,0 @@
-version
-date
-task create dispatcher --definition "transform && aggregate"

@@ -20,17 +20,14 @@ version: '3'
 #                             The deployed stream applications that run in their own docker containers (e.g. docker:// registered apps),
 #                             can be reached on the ports they expose.
 services:
-  mysql:
-    image: mysql
-    container_name: dataflow-mysql
+  mariadb:
+    image: mariadb:10.4.22
+    container_name: dataflow-mariadb
     environment:
-      MYSQL_DATABASE: dataflow
-      MYSQL_ROOT_PASSWORD: rootpw
-    command: --default-authentication-plugin=mysql_native_password
-    volumes:
-          - "./mysql:/docker-entrypoint-initdb.d"
-    ports: 
-      - "3306:3306"
+      MARIADB_DATABASE: dataflow
+      MARIADB_ROOT_PASSWORD: rootpw
+    expose:
+      - 3306
 
   kafka-broker:
     image: confluentinc/cp-kafka:5.5.2
@@ -57,7 +54,7 @@ services:
 
   dataflow-server:
     user: root
-    image: springcloud/spring-cloud-dataflow-server:${DATAFLOW_VERSION:-2.9.1}${BP_JVM_VERSION:-}
+    image: springcloud/spring-cloud-dataflow-server:${DATAFLOW_VERSION:-2.10.0-SNAPSHOT}${BP_JVM_VERSION:-}
     container_name: dataflow-server
     ports:
       - "9393:9393"
@@ -73,7 +70,7 @@ services:
 
       - SPRING_CLOUD_SKIPPER_CLIENT_SERVER_URI=${SKIPPER_URI:-http://skipper-server:7577}/api
 
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/dataflow
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/dataflow
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=rootpw
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.mariadb.jdbc.Driver
@@ -83,22 +80,21 @@ services:
 
       - SPRING_CLOUD_DATAFLOW_CONTAINER_REGISTRYCONFIGURATIONS_DEFAULT_USER=${METADATA_DEFAULT_DOCKERHUB_USER}
       - SPRING_CLOUD_DATAFLOW_CONTAINER_REGISTRYCONFIGURATIONS_DEFAULT_SECRET=${METADATA_DEFAULT_DOCKERHUB_PASSWORD}
-      - MAVEN_LOCAL_REPOSITORY=/Users/zhaofengnian/.m2/repository
     depends_on:
       - kafka-broker
       - skipper-server
     entrypoint: >
-      bin/sh -c "
+      /bin/sh -c "
          apt-get update && apt-get install --no-install-recommends -y wget &&
          wget --no-check-certificate -P /tmp/ https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh &&
          chmod a+x /tmp/wait-for-it.sh &&
-         /tmp/wait-for-it.sh mysql:3306 -- /cnb/process/web"
+         /tmp/wait-for-it.sh mariadb:3306 -- /cnb/process/web"
     restart: always
     volumes:
       - ${HOST_MOUNT_PATH:-.}:${DOCKER_MOUNT_PATH:-/home/cnb/scdf}
 
   # app-import-stream:
-  #   image: springcloud/baseimage:1.0.0
+  #   image: springcloud/baseimage:1.0.1
   #   container_name: dataflow-app-import-stream
   #   depends_on:
   #     - dataflow-server
@@ -108,11 +104,10 @@ services:
   #       wget -qO- '${DATAFLOW_URI:-http://dataflow-server:9393}/apps' --no-check-certificate --post-data='uri=${STREAM_APPS_URI:-https://dataflow.spring.io/kafka-maven-latest&force=true}';
   #       wget -qO- '${DATAFLOW_URI:-http://dataflow-server:9393}/apps/sink/ver-log/3.0.1' --no-check-certificate --post-data='uri=maven://org.springframework.cloud.stream.app:log-sink-kafka:3.0.1';
   #       wget -qO- '${DATAFLOW_URI:-http://dataflow-server:9393}/apps/sink/ver-log/2.1.5.RELEASE' --no-check-certificate --post-data='uri=maven://org.springframework.cloud.stream.app:log-sink-kafka:2.1.5.RELEASE';
-  #       wget -qO- '${DATAFLOW_URI:-http://dataflow-server:9393}/apps/sink/dataflow-tasklauncher/${DATAFLOW_VERSION:-2.9.1}' --no-check-certificate --post-data='uri=maven://org.springframework.cloud:spring-cloud-dataflow-tasklauncher-sink-kafka:${DATAFLOW_VERSION:-2.9.1}';
+  #       wget -qO- '${DATAFLOW_URI:-http://dataflow-server:9393}/apps/sink/dataflow-tasklauncher/${DATAFLOW_VERSION:-2.10.0-SNAPSHOT}' --no-check-certificate --post-data='uri=maven://org.springframework.cloud:spring-cloud-dataflow-tasklauncher-sink-kafka:${DATAFLOW_VERSION:-2.10.0-SNAPSHOT}';
   #       echo 'Maven Stream apps imported'"
-
   # app-import-task:
-  #   image: springcloud/baseimage:1.0.0
+  #   image: springcloud/baseimage:1.0.1
   #   container_name: dataflow-app-import-task
   #   depends_on:
   #     - dataflow-server
@@ -121,10 +116,9 @@ services:
   #       ./wait-for-it.sh -t 360 dataflow-server:9393;
   #       wget -qO- '${DATAFLOW_URI:-http://dataflow-server:9393}/apps' --no-check-certificate --post-data='uri=${TASK_APPS_URI:-https://dataflow.spring.io/task-maven-latest&force=true}';
   #       echo 'Maven Task apps imported'"
-
   skipper-server:
     user: root
-    image: springcloud/spring-cloud-skipper-server:${SKIPPER_VERSION:-2.8.1}${BP_JVM_VERSION:-}
+    image: springcloud/spring-cloud-skipper-server:${SKIPPER_VERSION:-2.9.0-SNAPSHOT}${BP_JVM_VERSION:-}
     container_name: skipper
     ports:
       - "7577:7577"
@@ -132,17 +126,17 @@ services:
     environment:
       - SPRING_CLOUD_SKIPPER_SERVER_PLATFORM_LOCAL_ACCOUNTS_DEFAULT_PORTRANGE_LOW=20000
       - SPRING_CLOUD_SKIPPER_SERVER_PLATFORM_LOCAL_ACCOUNTS_DEFAULT_PORTRANGE_HIGH=20190
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/dataflow
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://mariadb:3306/dataflow
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=rootpw
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.mariadb.jdbc.Driver
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_CLOUD_SKIPPER_SERVER_DEPLOYER=ERROR
     entrypoint: >
-      bin/sh -c "
+      /bin/sh -c "
          apt-get update && apt-get install --no-install-recommends -y wget &&
          wget --no-check-certificate -P /tmp/ https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh &&
          chmod a+x /tmp/wait-for-it.sh &&
-         /tmp/wait-for-it.sh mysql:3306 -- /cnb/process/web"
+         /tmp/wait-for-it.sh mariadb:3306 -- /cnb/process/web"
     restart: always
     volumes:
       - ${HOST_MOUNT_PATH:-.}:${DOCKER_MOUNT_PATH:-/home/cnb/scdf}
