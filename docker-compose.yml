@@ -84,14 +84,13 @@ services:
       - kafka-broker
       - skipper-server
     entrypoint: >
-      /bin/sh -c "
-         apt-get update && apt-get install --no-install-recommends -y wget &&
-         wget --no-check-certificate -P /tmp/ https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh &&
+      bin/sh -c "
          chmod a+x /tmp/wait-for-it.sh &&
          /tmp/wait-for-it.sh mariadb:3306 -- /cnb/process/web"
     restart: always
     volumes:
       - ${HOST_MOUNT_PATH:-.}:${DOCKER_MOUNT_PATH:-/home/cnb/scdf}
+      - ./wait-for-it.sh:/tmp/wait-for-it.sh
 
   # app-import-stream:
   #   image: springcloud/baseimage:1.0.1
@@ -132,14 +131,13 @@ services:
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.mariadb.jdbc.Driver
       - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_CLOUD_SKIPPER_SERVER_DEPLOYER=ERROR
     entrypoint: >
-      /bin/sh -c "
-         apt-get update && apt-get install --no-install-recommends -y wget &&
-         wget --no-check-certificate -P /tmp/ https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh &&
+      bin/sh -c "
          chmod a+x /tmp/wait-for-it.sh &&
          /tmp/wait-for-it.sh mariadb:3306 -- /cnb/process/web"
     restart: always
     volumes:
       - ${HOST_MOUNT_PATH:-.}:${DOCKER_MOUNT_PATH:-/home/cnb/scdf}
+      - ./wait-for-it.sh:/tmp/wait-for-it.sh
 
   dispatcher-server:
     build: ml-dispatcher

@@ -11,7 +11,7 @@
 cd ml-dispatcher
 ./gradlew build
 cd ..
-docker-compose up
+docker-compose up -d
 ```
 查看  
 [Dataflow](http://localhost:9393)  
